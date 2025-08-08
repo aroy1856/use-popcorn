@@ -1,15 +1,18 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
-export default function SearchBox() {
-  const [query, setQuery] = useState("");
+type SearchBoxProps = {
+  query: string;
+  onSetQuery: (query: string) => void;
+};
 
+export default function SearchBox({ query, onSetQuery }: SearchBoxProps) {
   return (
     <input
       className="search"
       type="text"
       placeholder="Search movies..."
       value={query}
-      onChange={(e) => setQuery(e.target.value)}
+      onChange={(e) => onSetQuery(e.target.value)}
     />
   );
 }

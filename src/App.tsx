@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { MovieType, WatchedMovieType } from "./type";
+import { ApiResponse, MovieType, WatchedMovieType } from "./type";
 
 import Main from "./Main";
 import Navbar from "./Navbar";
@@ -10,71 +10,106 @@ import Box from "./Box";
 import MovieList from "./MovieList";
 import WatchedSummary from "./WatchedSummary";
 import WatchedMovieList from "./WatchedMovieList";
-
-export const tempMovieData = [
-  {
-    imdbID: "tt1375666",
-    Title: "Inception",
-    Year: "2010",
-    Poster:
-      "https://m.media-amazon.com/images/M/MV5BMjAxMzY3NjcxNF5BMl5BanBnXkFtZTcwNTI5OTM0Mw@@._V1_SX300.jpg",
-  },
-  {
-    imdbID: "tt0133093",
-    Title: "The Matrix",
-    Year: "1999",
-    Poster:
-      "https://m.media-amazon.com/images/M/MV5BNzQzOTk3OTAtNDQ0Zi00ZTVkLWI0MTEtMDllZjNkYzNjNTc4L2ltYWdlXkEyXkFqcGdeQXVyNjU0OTQ0OTY@._V1_SX300.jpg",
-  },
-  {
-    imdbID: "tt6751668",
-    Title: "Parasite",
-    Year: "2019",
-    Poster:
-      "https://m.media-amazon.com/images/M/MV5BYWZjMjk3ZTItODQ2ZC00NTY5LWE0ZDYtZTI3MjcwN2Q5NTVkXkEyXkFqcGdeQXVyODk4OTc3MTY@._V1_SX300.jpg",
-  },
-];
-
-export const tempWatchedData = [
-  {
-    imdbID: "tt1375666",
-    Title: "Inception",
-    Year: "2010",
-    Poster:
-      "https://m.media-amazon.com/images/M/MV5BMjAxMzY3NjcxNF5BMl5BanBnXkFtZTcwNTI5OTM0Mw@@._V1_SX300.jpg",
-    runtime: 148,
-    imdbRating: 8.8,
-    userRating: 10,
-  },
-  {
-    imdbID: "tt0088763",
-    Title: "Back to the Future",
-    Year: "1985",
-    Poster:
-      "https://m.media-amazon.com/images/M/MV5BZmU0M2Y1OGUtZjIxNi00ZjBkLTg1MjgtOWIyNThiZWIwYjRiXkEyXkFqcGdeQXVyMTQxNzMzNDI@._V1_SX300.jpg",
-    runtime: 116,
-    imdbRating: 8.5,
-    userRating: 9,
-  },
-];
+import Loader from "./Loader";
+import ErrorMessage from "./ErrorMessage";
+import MovieDetails from "./MovieDetails";
 
 export default function App() {
-  const [movies, setMovies] = useState<MovieType[]>(tempMovieData);
-  const [watched, setWatched] = useState<WatchedMovieType[]>(tempWatchedData);
+  const [query, setQuery] = useState("");
+  const [movies, setMovies] = useState<MovieType[]>([]);
+  const [watched, setWatched] = useState<WatchedMovieType[]>([]);
+  const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function fetchMovies() {
+      try {
+        setError("");
+        setIsLoading(true);
+        const res = await fetch(
+          `http://www.omdbapi.com/?apikey=c2759c15&s=${query}`,
+          { signal: controller.signal }
+        );
+
+        if (!res.ok) {
+          throw new Error("Something went wrong while fetching movies");
+        }
+
+        const data: ApiResponse = await res.json();
+        if (data.Response === "False") {
+          throw new Error(data.Error || "No results found");
+        }
+        setMovies(data.Search || []);
+      } catch (err) {
+        if (err instanceof Error && err.name !== "AbortError")
+          setError(err.message || "Something went wrong");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (query.trim().length < 3) {
+      setMovies([]);
+      setError("");
+      setIsLoading(false);
+      return;
+    }
+
+    fetchMovies();
+
+    return () => controller.abort();
+  }, [query]);
+
+  function handleSelectMovie(id: string) {
+    setSelectedMovieId(id == selectedMovieId ? null : id);
+  }
+
+  function handleCloseMovie() {
+    setSelectedMovieId(null);
+  }
+
+  function handleAddWatchedMovie(movie: WatchedMovieType) {
+    setWatched((watched) => [...watched, movie]);
+  }
+
+  function handleRemoveWatchedMovie(id: string) {
+    setWatched((watched) => watched.filter((movie) => movie.imdbID !== id));
+  }
 
   return (
     <>
       <Navbar>
-        <SearchBox />
+        <SearchBox query={query} onSetQuery={setQuery} />
         <NumResult movies={movies} />
       </Navbar>
       <Main>
         <Box>
-          <MovieList movies={movies} />
+          {isLoading && <Loader />}
+          {error && <ErrorMessage message={error} />}
+          {!isLoading && !error && (
+            <MovieList movies={movies} onSelectMovie={handleSelectMovie} />
+          )}
         </Box>
         <Box>
-          <WatchedSummary watched={watched} />
-          <WatchedMovieList watched={watched} />
+          {selectedMovieId ? (
+            <MovieDetails
+              movieId={selectedMovieId}
+              watchedMovies={watched}
+              onCloseMovie={handleCloseMovie}
+              onAddWatchedMovie={handleAddWatchedMovie}
+            />
+          ) : (
+            <>
+              <WatchedSummary watched={watched} />
+              <WatchedMovieList
+                watched={watched}
+                onRemoveWatchedMovie={handleRemoveWatchedMovie}
+              />
+            </>
+          )}
         </Box>
       </Main>
     </>
