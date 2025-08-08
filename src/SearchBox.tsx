@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 type SearchBoxProps = {
   query: string;
@@ -21,7 +21,7 @@ export default function SearchBox({ query, onSetQuery }: SearchBoxProps) {
 
     inputEl.current?.focus();
     return () => document.removeEventListener("keydown", callback);
-  }, []);
+  }, [onSetQuery]);
 
   return (
     <input

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { ApiResponse, MovieType, WatchedMovieType } from "./type";
+import { WatchedMovieType } from "./type";
 
 import Main from "./Main";
 import Navbar from "./Navbar";
@@ -26,7 +26,7 @@ export default function App() {
   const { isLoading, error, movies } = useMovies(query);
 
   function handleSelectMovie(id: string) {
-    setSelectedMovieId(id == selectedMovieId ? null : id);
+    setSelectedMovieId(id === selectedMovieId ? null : id);
   }
 
   function handleCloseMovie() {

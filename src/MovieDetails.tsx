@@ -1,4 +1,4 @@
-import { SyntheticEvent, use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { MovieDetailsType, WatchedMovieType } from "./type";
 import Loader from "./Loader";
 import ErrorMessage from "./ErrorMessage";
